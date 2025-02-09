@@ -3,7 +3,7 @@ This is the code for the GridCoder algorithm mentioned in my ARC Prize 2024 pape
 
 # Setup
 - First, clone [ARC_gym](https://github.com/SimonOuellette35/ARC_gym/)
-- From the ARC_gym local repo folder, pip -e install .
+- From the ARC_gym local repo folder, pip install -e .
 - Then, clone [ARC-AGI](https://github.com/fchollet/ARC-AGI) into the GridCoder2024 root folder, because you will need ARC-AGI grid examples for training/validation data generation.
 - Rename the ARC-AGI folder to ARC
 - You can get pre-trained weights from my Kaggle model: [https://www.kaggle.com/models/simonouellette/gridcoder-2024/](https://www.kaggle.com/models/simonouellette/gridcoder-2024/) -- download the model_full.pth file under Kaggle_code/
