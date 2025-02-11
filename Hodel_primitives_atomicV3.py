@@ -2791,6 +2791,21 @@ def cmirror(grid: Grid) -> Grid:
 def fill(grid, value, patch):
     """ fill value at indices """
     h, w = grid.height, grid.width
+    grid_filled = list(list(row) for row in grid.cells)
+    for i, j in toindices(patch):
+        if 0 <= i < h and 0 <= j < w:
+            grid_filled[i][j] = value
+    return Grid(tuple(tuple(row) for row in grid_filled), 
+                grid.ul_x, 
+                grid.ul_y, 
+                prev_width=grid.orig_width, 
+                prev_height=grid.orig_height,
+                prev_ul_x=grid.orig_ul_x,
+                prev_ul_y=grid.orig_ul_y)
+
+def shifted_fill(grid, value, patch):
+    """ fill value at indices """
+    h, w = grid.height, grid.width
     grid_filled = list(list(row) for row in grid.get_shifted_cells())
     for i, j in toindices(patch):
         if 0 <= i < h and 0 <= j < w:
@@ -3332,7 +3347,7 @@ def set_fg_color(grid: Grid, color):
 def color_change(grid, from_color, to_color):
     px_indices = ofcolor(grid.get_shifted_cells(), from_color)
 
-    return fill(grid, to_color, px_indices)
+    return shifted_fill(grid, to_color, px_indices)
 
 def color_swap(grid, color1, color2):
     px_indices1 = ofcolor(grid, color1)
