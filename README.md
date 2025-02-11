@@ -30,65 +30,67 @@ $ python test_gridcoder.py --task 1990f7a8.json
 
 The tasks that are potentially solvable are as follows:
 
-**[Trivial "objectness" type of tasks]**
-- 1990f7a8.json
-- 67636eac.json
-- 25094a63.json
-- 45737921.json
-- 73182012.json
-- 423a55dc.json
-- 7c9b52a0.json
-- 1c56ad9f.json
-- 0a1d4ef5.json
-- af24b4cc.json
-- 0bb8deee.json
-- 8fbca751.json
-- 1c0d0a4b.json
+**[Trivial "objectness" tasks] (8/13)**
+- 1990f7a8.json: SUCCESS
+- 67636eac.json: SUCCESS
+- 25094a63.json: FAILURE
+- 45737921.json: SUCCESS
+- 73182012.json: SUCCESS
+- 423a55dc.json: SUCCESS
+- 7c9b52a0.json: SUCCESS
+- 1c56ad9f.json: SUCCESS
+- 0a1d4ef5.json: FAILURE
+- af24b4cc.json: FAILURE
+- 0bb8deee.json: SUCCESS
+- 8fbca751.json: FAILURE
+- 1c0d0a4b.json: FAILURE
 
-**[Object Selector type of tasks]**
-- 1a6449f1.json
-- 2c0b0aff.json
-- d56f2372.json
-- 73ccf9c2.json
-- 3194b014.json
-- 54db823b.json
+[Object Selector] (1/6)
+- 1a6449f1.json: SUCCESS
+- 2c0b0aff.json: FAILURE
+- d56f2372.json: FAILURE
+- 73ccf9c2.json: FAILURE
+- 3194b014.json: FAILURE
+- 54db823b.json: FAILURE
 
-**[Misc. objectness type of tasks]**
-- e7dd8335.json
-- 7ee1c6ea.json
+[Misc. objectness] (1/2)
+- e7dd8335.json: SUCCESS
+- 7ee1c6ea.json: FAILURE
 
-**[split-merge tasks]**
-- 195ba7dc.json
-- 5d2a5c43.json
-- 3d31c5b3.json
-- e99362f0.json
-- e133d23d.json
-- e345f17b.json
-- ea9794b1.json
-- 31d5ba1a.json
-- d19f7514.json
-- 66f2d22f.json
-- 506d28a5.json
-- 6a11f6da.json
-- 34b99a2b.json
-- 281123b4.json
-- 0c9aba6e.json
+[split-merge tasks] (15/15)
+- 195ba7dc.json: SUCCESS
+- 5d2a5c43.json: SUCCESS
+- 3d31c5b3.json: SUCCESS
+- e99362f0.json: SUCCESS
+- e133d23d.json: SUCCESS
+- e345f17b.json: SUCCESS
+- ea9794b1.json: SUCCESS
+- 31d5ba1a.json: SUCCESS
+- d19f7514.json: SUCCESS
+- 66f2d22f.json: SUCCESS
+- 506d28a5.json: SUCCESS
+- 6a11f6da.json: SUCCESS
+- 34b99a2b.json: SUCCESS
+- 281123b4.json: SUCCESS
+- 0c9aba6e.json: SUCCESS
 
-**[tiling tasks]**
-- 59341089.json 
-- c48954c1.json 
-- 7953d61e.json 
-- 0c786b71.json 
-- 833dafe3.json 
-- 00576224.json 
-- 48131b3c.json
-- ed98d772.json 
-- bc4146bd.json 
+[tiling tasks] (5/9)
+- 59341089.json: SUCCESS
+- c48954c1.json: FAILURE		* Solution actually in non-zero probability space, but search times out before reaching it.
+- 7953d61e.json: SUCCESS
+- 0c786b71.json: SUCCESS
+- 833dafe3.json: SUCCESS
+- 00576224.json: FAILURE		* Solution actually in non-zero probability space, but search times out before reaching it.
+- 48131b3c.json: FAILURE
+- ed98d772.json: SUCCESS
+- bc4146bd.json: FAILURE
 
-**[n-deep tasks]**
-- 66e6c45b.json 
-- 32e9702f.json
-- 60c09cac.json
-- e633a9e5.json
+[n-deep tasks] (3/4)
+- 66e6c45b.json: SUCCESS
+- 32e9702f.json: SUCCESS
+- 60c09cac.json: SUCCESS
+- e633a9e5.json: FAILURE
+
+In most cases except the two failures identified as such, the failures are due to model inaccuracy rather that search inefficiency. That is, in most failure cases the solution is predicted to have a non-zero probability according to the model. Presumably a better model architecture, better training data and/or more training can resolve these issues. Note that also that there is some randomness in results due to the "probability bootstrapping" phase which involves some random sampling -- hence the deterministic seed to ensure reproducibility.
 
 Note that if you want to try the alternative search algorithm discussed in the paper, you can change the line 35 import in the test_gridcoder.py script to search.p_star as p_star ("GridCoder cond") or p_star_muzero.py for the MCTS version.
