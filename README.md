@@ -91,6 +91,6 @@ The tasks that are potentially solvable are as follows:
 - 60c09cac.json: SUCCESS
 - e633a9e5.json: FAILURE
 
-In most cases except the two failures identified as such, the failures are due to model inaccuracy rather that search inefficiency. That is, in most failure cases the solution is predicted to have a non-zero probability according to the model. Presumably a better model architecture, better training data and/or more training can resolve these issues. Note that also that there is some randomness in results due to the "probability bootstrapping" phase which involves some random sampling -- hence the deterministic seed to ensure reproducibility.
+In most cases except the two failures identified as such, the failures are due to model inaccuracy rather that search inefficiency. That is, in most failure cases the solution is predicted to have a near-zero probability according to the model. Presumably a better model architecture, better training data and/or more training can resolve these issues. Note that also that there is some randomness in results due to the "probability bootstrapping" phase which involves some random sampling -- hence the deterministic seed to ensure reproducibility.
 
 Note that if you want to try the alternative search algorithm discussed in the paper, you can change the line 35 import in the test_gridcoder.py script to search.p_star as p_star ("GridCoder cond") or p_star_muzero.py for the MCTS version.
