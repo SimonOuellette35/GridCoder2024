@@ -59,10 +59,12 @@ def color_heuristics_tuples(grid1, grid2, prim_name, prim_func, args_composed=Tr
                 if c1 == c2:
                     continue
 
-                if args_composed:
-                    intermediate = prim_func(grid1)(c1)(c2)
-                else:
-                    intermediate = prim_func(grid1, c1, c2)
+                # if args_composed:
+                #     print("prim_func = ", prim_func)
+                #     print("grid1 = ", grid1)
+                #     intermediate = prim_func(grid1)(c1)(c2)
+                # else:
+                intermediate = prim_func(grid1, c1, c2)
 
                 if is_same(intermediate.get_shifted_cells(), grid2):
                     return (c1, c2)
@@ -87,13 +89,10 @@ def color_heuristics_tuplesV3(grid1, grid2, prim_name, prim_func, args_composed=
                 if c1 == c2:
                     continue
 
-                if args_composed:
-                    intermediate = prim_func(grid1)(c1)(c2)
-                else:
-                    intermediate = prim_func(grid1, c1, c2)
+                intermediate = prim_func(grid1, c1, c2)
 
                 #viz.draw_grid_triple(grid1.cells, intermediate.cells, grid2.cells)
-                if is_same(intermediate.cells, grid2.cells):
+                if is_same(intermediate.get_shifted_cells(), grid2):
                     return (c1, c2)
 
     return (None, None)

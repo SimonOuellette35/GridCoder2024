@@ -47,6 +47,7 @@ def get_prediction(label_seq, gridX, c1=None, c2=None, gridY=None, verbose=False
         if verbose:
             label_seq_str = get_label_seq_str(label_seq)
             print("Evaluating program: ", label_seq_str)
+
         if not pi.is_valid_program(label_seq, hp):
             if verbose:
                 print("==> NOT A VALID PROGRAM!")
@@ -56,11 +57,14 @@ def get_prediction(label_seq, gridX, c1=None, c2=None, gridY=None, verbose=False
         program_tree = pi.generate_syntax_trees(np.array(label_seq), hp)
         if verbose:
             print("program_tree = ", program_tree)
+
         program_string = pi.write_program(program_tree, np.array(label_seq), hp)
         
         if verbose:
             print("Program string: ", program_string)
+
         program_func = pi.compile_program(program_string, hp.semantics)
+
         # execute the program on the input grid
         output_grids = []
         for k_idx in range(len(gridX)):
@@ -68,9 +72,8 @@ def get_prediction(label_seq, gridX, c1=None, c2=None, gridY=None, verbose=False
 
             input_grid = hp.Grid(tuple_grid_X)
             num_func_args = pi.get_num_lambda_func_args(program_func)
-            #print("==> num_func_args: ", num_func_args)
 
-            if num_func_args == 1:
+            if num_func_args == 1 and "color_change" not in program_string:
                 output_grid = program_func(input_grid)
                 if isinstance(output_grid, list):
                     output_grid = output_grid[0]
@@ -87,23 +90,19 @@ def get_prediction(label_seq, gridX, c1=None, c2=None, gridY=None, verbose=False
                 else:
                     return False
                 
-                print("==> Uses color_change! c1: ", c1)
                 if c1 is None and c2 is None:
-                    c1, c2 = heur.color_heuristics_tuples(input_grid, tuple_grid_Y, prim_name, program_func, args_composed=True)
+                    c1, c2 = heur.color_heuristics_tuplesV3(input_grid, tuple_grid_Y, prim_name, program_func, args_composed=True)
 
                     if c1 is None or c2 is None:
-                        print("==> Could not find any color combination applied to %s that could solve the problem." % prim_name)
-                        output_grid = program_func(input_grid)(1)(2)
+                        output_grid = program_func(input_grid, 1, 2)
 
                         if isinstance(output_grid, list):
                             output_grid = output_grid[0]
                         output_grids.append(output_grid)
                         c1 = 1
                         c2 = 2
-                    else:
-                        print("==> Found color combination %s(%i, %i)!" % (prim_name, c1, c2))
 
-                output_grid = program_func(input_grid)(c1)(c2)
+                output_grid = program_func(input_grid, c1, c2)
                 if isinstance(output_grid, list):
                   output_grid = output_grid[0]
 
@@ -121,7 +120,7 @@ def get_prediction(label_seq, gridX, c1=None, c2=None, gridY=None, verbose=False
             print("==> Invalid program, an exception occurred while running it")
             print(traceback.format_exc())
 
-        return None, None, None
+    return None, None, None
 
 
 def evaluate_program(label_seq, example_grid_set, verbose=False):
@@ -413,16 +412,16 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
 
         # evaluate the program and stop if it succeeds.
         verbose = False
-        if prog[1][:4] == [13, 1, 50, 3]:
-            print("==> Trying the correct program!")
-            exit(0)
-            verbose = True
         
         result, c1, c2 = evaluate_program(prog[1], example_token_seqs, verbose=verbose)
         #print("\tIteration %i: Result: %s" % (n, result))
 
         # if c1 is not None:
         #     print("\tc1 = %i, c2 = %i" % (c1, c2))
+
+        # if prog[1][:4] == [13, 1, 50, 3]:
+        #     print("==> Trying the correct program!")
+        #     return prog[1], c1, c2, True
 
         if result:
             print("Success! Iteration %i, Time elapsed: %.2f" % (n, time.time() - start_time))
