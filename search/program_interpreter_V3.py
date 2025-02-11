@@ -453,13 +453,25 @@ def assemble_program_string(tree, label_seq, hp, is_lambda=False):
 
 def compile_program(description, primitives):
     tree = ast.parse(description)
+    # Check if the program uses color parameters
+    has_color_params = 'c1' in description and 'c2' in description
+    if has_color_params:
+        # Add color parameters to primitives if needed
+        primitives = {**primitives, 'c1': None, 'c2': None}
     return eval_ast(tree.body[0].value, primitives)
 
 def eval_ast(node, primitives, env=None):
     if env is None:
         env = {}
     if isinstance(node, ast.Lambda):
-        return lambda *args: eval_ast(node.body, primitives, {**env, **{arg.arg: val for arg, val in zip(node.args.args, args)}})
+        # Create a closure that captures color parameters if they exist
+        def lambda_wrapper(*args):
+            local_env = {**env}
+            # Map arguments to parameter names
+            for arg, val in zip(node.args.args, args):
+                local_env[arg.arg] = val
+            return eval_ast(node.body, primitives, local_env)
+        return lambda_wrapper
     elif isinstance(node, ast.Call):
         func = eval_ast(node.func, primitives, env)
         args = [eval_ast(arg, primitives, env) for arg in node.args]

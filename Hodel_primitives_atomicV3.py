@@ -2803,6 +2803,22 @@ def fill(grid, value, patch):
                 prev_ul_x=grid.orig_ul_x,
                 prev_ul_y=grid.orig_ul_y)
 
+def shifted_fill(grid, value, patch):
+    """ fill value at indices """
+    h, w = grid.height, grid.width
+    grid_filled = list(list(row) for row in grid.get_shifted_cells())
+    for i, j in toindices(patch):
+        if 0 <= i < h and 0 <= j < w:
+            grid_filled[i][j] = value
+
+    return Grid(tuple(tuple(row) for row in grid_filled), 
+                0, 
+                0, 
+                prev_width=grid.orig_width, 
+                prev_height=grid.orig_height,
+                prev_ul_x=grid.ul_x,
+                prev_ul_y=grid.ul_y)
+
 def paint(grid, obj):
     """ paint object to grid """
     h, w = len(grid), len(grid[0])
@@ -3329,9 +3345,9 @@ def set_fg_color(grid: Grid, color):
     return output_grid
 
 def color_change(grid, from_color, to_color):
-    px_indices = ofcolor(grid.cells, from_color)
+    px_indices = ofcolor(grid.get_shifted_cells(), from_color)
 
-    return fill(grid, to_color, px_indices)
+    return shifted_fill(grid, to_color, px_indices)
 
 def color_swap(grid, color1, color2):
     px_indices1 = ofcolor(grid, color1)
