@@ -45,7 +45,7 @@ The tasks that are potentially solvable are as follows:
 - 8fbca751.json: FAILURE
 - 1c0d0a4b.json: FAILURE
 
-[Object Selector] (1/6)
+**[Object Selector] (1/6)**
 - 1a6449f1.json: SUCCESS
 - 2c0b0aff.json: FAILURE
 - d56f2372.json: FAILURE
@@ -53,11 +53,11 @@ The tasks that are potentially solvable are as follows:
 - 3194b014.json: FAILURE
 - 54db823b.json: FAILURE
 
-[Misc. objectness] (1/2)
+**[Misc. objectness] (1/2)**
 - e7dd8335.json: SUCCESS
 - 7ee1c6ea.json: FAILURE
 
-[split-merge tasks] (15/15)
+**[split-merge tasks] (15/15)**
 - 195ba7dc.json: SUCCESS
 - 5d2a5c43.json: SUCCESS
 - 3d31c5b3.json: SUCCESS
@@ -74,7 +74,7 @@ The tasks that are potentially solvable are as follows:
 - 281123b4.json: SUCCESS
 - 0c9aba6e.json: SUCCESS
 
-[tiling tasks] (5/9)
+**[tiling tasks] (5/9)**
 - 59341089.json: SUCCESS
 - c48954c1.json: FAILURE		* Solution actually in non-zero probability space, but search times out before reaching it.
 - 7953d61e.json: SUCCESS
@@ -85,7 +85,7 @@ The tasks that are potentially solvable are as follows:
 - ed98d772.json: SUCCESS
 - bc4146bd.json: FAILURE
 
-[n-deep tasks] (3/4)
+**[n-deep tasks] (3/4)**
 - 66e6c45b.json: SUCCESS
 - 32e9702f.json: SUCCESS
 - 60c09cac.json: SUCCESS
