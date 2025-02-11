@@ -11,6 +11,11 @@ import time
 import copy
 
 
+DET_SEED = 1
+
+np.random.seed(DET_SEED)
+
+
 VERBOSE = False
 VIZ = False
 EOS_TOKEN = 3
@@ -273,13 +278,13 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
                 else:
                     print("\t(%i) %s ==> %.2f" % (prob_idx, hp.inverse_lookup(prob_idx-NUM_SPECIAL_TOKENS), prob))
 
-    def enumerate_sequences(prob_dist, max_length, pos=0, current_seq=None, current_log_prob=0):
+    def enumerate_sequences(prob_dist, max_length):
         num_permutations = np.inf
 
         thresholds = np.ones(len(prob_dist)) * THRESH
 
         last_probable_tokens = []
-        while num_permutations > 1000000:
+        while num_permutations > 1000000 and (time.time() - start_time) < (time_budget - 60):
 
             probable_tokens = []
             for token_idx, prob_list in enumerate(prob_dist):
@@ -337,9 +342,6 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
                 weights = np.array([decay ** (n-1-i) for i in range(n)])
                 thresholds += weights * total_increment
 
-            if (time.time() - start_time) > time_budget:
-                return prog[1], None, None, False
-
         probable_tokens = last_probable_tokens
         #print("probable_tokens = ", probable_tokens)
 
@@ -379,7 +381,7 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
                     break
 
                 tmp_prob = prob_dist[pos_idx][token]
-                prob = prob * math.log(tmp_prob)
+                prob = prob + math.log(tmp_prob)
 
                 if token == EOS_TOKEN:
                     break
