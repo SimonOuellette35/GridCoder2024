@@ -162,13 +162,11 @@ def get_probability_space(model, example_grid_set, starting_seq = [], example_nu
 
     done = False
     seq_len = 0
-    max_log_prob = 1
+
     while not done and seq_len < max_seq_len:
         token_probs = model.predict(X[example_num], Y[example_num], shifted_label_seq[:40])
         prob_dist.append(token_probs[0].cpu().data.numpy())
         best_token = np.argmax(token_probs[0].cpu().data.numpy())
-
-        max_log_prob *= math.log(token_probs[0][best_token])
 
         if best_token == EOS_TOKEN:
             # Filter out probabilities below threshold
@@ -194,7 +192,7 @@ def get_probability_space(model, example_grid_set, starting_seq = [], example_nu
         shifted_label_seq = new_seq
         seq_len += 1
 
-    return prob_dist, shifted_label_seq, max_log_prob
+    return prob_dist, shifted_label_seq
 
 # example_grid_set is an (X, Y) tuple of input grid set and target grid set
 # X and Y are lists of k examples.
@@ -203,7 +201,7 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
     start_time = time.time()
 
     THRESH = 0.01
-    probability_dist, arg_max_seq, _ = get_probability_space(model, example_grid_set_tensor, THRESH=THRESH)
+    probability_dist, arg_max_seq = get_probability_space(model, example_grid_set_tensor, THRESH=THRESH)
 
     # for token_idx, prob_dist in enumerate(probability_dist):
     #     print("==> Probabilities at token %i" % (token_idx))
@@ -241,7 +239,7 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
             token2 = np.random.choice(probable_tokens[1])
             start_seq = [token1, token2]
 
-        tmp_prob_dist, _, _ = get_probability_space(model, example_grid_set_tensor, starting_seq=start_seq, example_num=num, THRESH=THRESH)
+        tmp_prob_dist, _ = get_probability_space(model, example_grid_set_tensor, starting_seq=start_seq, example_num=num, THRESH=THRESH)
         tested_start_seqs.append(start_seq)
 
         #print("Using start_seq = ", start_seq)
