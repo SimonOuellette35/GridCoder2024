@@ -11,7 +11,7 @@ import time
 import copy
 
 
-DET_SEED = 1
+DET_SEED = 12345
 
 np.random.seed(DET_SEED)
 
@@ -131,22 +131,28 @@ def evaluate_program(label_seq, example_grid_set, verbose=False):
     if output_grids is None:
         return False, None, None
     
-    for k_idx in range(len(output_grids)):
-        #output_grid_tok = tok.tokenize_grid(output_grids[k_idx].get_shifted_cells(), max_length=931)
-        output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
+    try:
+        for k_idx in range(len(output_grids)):
+            #output_grid_tok = tok.tokenize_grid(output_grids[k_idx].get_shifted_cells(), max_length=931)
+            output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
 
-        if verbose:
-            print("output_grid_tok = ", output_grid_tok)
-            print("gridY[k_idx] = ", gridY[k_idx])
-
-            grid_output_viz = tok.detokenize_grid_unpadded(gridY[k_idx])
-            viz.draw_grid_pair(output_grids[k_idx].cells, grid_output_viz)
-
-        if np.any(output_grid_tok != gridY[k_idx]):
             if verbose:
-                print("==> Program output does not match ground truth.")
-            return False, None, None
-            
+                print("output_grid_tok = ", output_grid_tok)
+                print("gridY[k_idx] = ", gridY[k_idx])
+
+                grid_output_viz = tok.detokenize_grid_unpadded(gridY[k_idx])
+                viz.draw_grid_pair(output_grids[k_idx].cells, grid_output_viz)
+
+            if np.any(output_grid_tok != gridY[k_idx]):
+                if verbose:
+                    print("==> Program output does not match ground truth.")
+                return False, None, None
+    except:
+        if verbose:
+            print("==> Exception occurred while evaluating program.")
+
+        return False, None, None
+
     return True, c1, c2
 
 def get_probability_space(model, example_grid_set, starting_seq = [], example_num = 0, device='cuda', max_seq_len=40, THRESH=0.01):
@@ -407,9 +413,10 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
 
         # evaluate the program and stop if it succeeds.
         verbose = False
-        # if prog[1][:4] == [19, 1, 51, 3]:
-        #     print("==> Trying the correct program!")
-        #     verbose = True
+        if prog[1][:4] == [13, 1, 50, 3]:
+            print("==> Trying the correct program!")
+            exit(0)
+            verbose = True
         
         result, c1, c2 = evaluate_program(prog[1], example_token_seqs, verbose=verbose)
         #print("\tIteration %i: Result: %s" % (n, result))
