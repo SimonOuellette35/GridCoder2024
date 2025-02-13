@@ -125,8 +125,7 @@ def generate_syntax_trees(token_seq, hp):
 
     return tree_nodes_per_level
 
-def is_valid_partial_program(label_seq):
-
+def is_valid_partial_program(label_seq, hp):
     # Split label_seq into levels
     levels = []
     current_level = []
@@ -161,14 +160,9 @@ def is_valid_partial_program(label_seq):
     prev_outputs = None
     for i, level in enumerate(levels):
         outputs = len(level)
-        inputs = sum(get_num_args(label) for label in level)
+        inputs = sum(get_num_args(label, hp) for label in level)
 
-        # print("Level %i, outputs = %i, inputs = %i" % (i, outputs, inputs))
-        # print("\tlevel content: ", level)
-        # Validate inputs match previous level's outputs (except for first level)
         if i == len(levels) - 1 and not last_level_complete:
-            # the last level that is not yet wrapped up: the logic is a bit different. If there are already too many nodes at that level,
-            # it is invalid -- but if there are too new, it is valid because there is still room to add the missing nodes.
             if inputs > prev_outputs:
                 return False
         elif i > 0 and inputs != prev_outputs:
