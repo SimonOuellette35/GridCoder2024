@@ -1,15 +1,13 @@
-import math
-import search.program_interpreter as pi
+import search.program_interpreter_V3 as pi
 import numpy as np
 import utils.heuristics as heur
-import Hodel_primitives_atomic as hp
+import Hodel_primitives_atomicV3 as hp
 import torch
 import utils.grid_utils as g
 import ARC_gym.utils.tokenization as tok
 import ARC_gym.utils.visualization as viz
 from model.heuristic import ManualHeuristic
 import random
-import csv
 
 VERBOSE = False
 VIZ = False
@@ -57,7 +55,7 @@ def select_node(node):
 
     scores = []
     max_child = None
-    max_score = 0.
+    max_score = -np.inf
     for child in node.children:
         if child.visits == 0:
             u = child.prob
@@ -125,7 +123,7 @@ def expand_node(node, path, example_grid_set, model, input_vocab_size=13, device
         child = Node(token, prob)
 
         tmp_lbl_seq = path_to_label_seq(path + [child])
-        if pi.is_valid_partial_program(tmp_lbl_seq):
+        if pi.is_valid_partial_program(tmp_lbl_seq, hp):
             node.children.append(child)
 
     node.is_expanded = True
@@ -133,58 +131,139 @@ def expand_node(node, path, example_grid_set, model, input_vocab_size=13, device
 def path_to_label_seq(path):
     return [node.token_idx for node in path if node.token_idx != -1]
 
-def evaluate_program(path, example_grid_set):
-    label_seq = path_to_label_seq(path)
-    
+def get_label_seq_str(label_seq):
+
+    label_seq_str = []
+    for lbl in label_seq:
+        if lbl < 4:
+            if lbl == 0:
+                label_seq_str.append("<PAD>")
+            elif lbl == 1:
+                label_seq_str.append("<NEW LEVEL>")
+            elif lbl == 2:
+                label_seq_str.append("<IDENTITY>")
+            elif lbl == 3:
+                label_seq_str.append("<EOS>")
+                break
+        else:
+            label_seq_str.append(hp.inverse_lookup(lbl-NUM_SPECIAL_TOKENS))
+
+    return label_seq_str
+
+def get_prediction(label_seq, gridX, c1=None, c2=None, gridY=None, verbose=False):
+   
+    #print("Getting prediction for label_seq: ", label_seq)
     try:
-        print("Evaluating program: ", label_seq)
-        if not pi.is_valid_program(label_seq):
-            print("==> NOT A VALID PROGRAM!")
-            return 0.0
+        if verbose:
+            label_seq_str = get_label_seq_str(label_seq)
+            print("Evaluating program: ", label_seq_str)
 
-        program_tree = pi.generate_syntax_trees(np.array(label_seq))
-        program_func = pi.assemble_program(program_tree, np.array(label_seq))
+        if not pi.is_valid_program(label_seq, hp):
+            if verbose:
+                print("==> NOT A VALID PROGRAM!")
+            return None, None, None
 
-        gridX, gridY = example_grid_set
-        correct_count = 0
+        # run the program interpreter on the task
+        program_tree = pi.generate_syntax_trees(np.array(label_seq), hp)
+        if verbose:
+            print("program_tree = ", program_tree)
 
-        sims = []
+        program_string = pi.write_program(program_tree, np.array(label_seq), hp)
+        
+        if verbose:
+            print("Program string: ", program_string)
+
+        program_func = pi.compile_program(program_string, hp.semantics)
+
+        # execute the program on the input grid
+        output_grids = []
         for k_idx in range(len(gridX)):
             tuple_grid_X = tok.detokenize_grid_unpadded(gridX[k_idx])
-            tuple_grid_Y = tok.detokenize_grid_unpadded(gridY[k_idx])
 
-            if pi.get_num_lambda_func_args(program_func) == 1:
-                output_grid = program_func(tuple_grid_X)
+            input_grid = hp.Grid(tuple_grid_X)
+            num_func_args = pi.get_num_lambda_func_args(program_func)
+
+            if num_func_args == 1 and "color_change" not in program_string:
+                output_grid = program_func(input_grid)
+                if isinstance(output_grid, list):
+                    output_grid = output_grid[0]
             else:
+                if c1 is None and c2 is None:
+                    tuple_grid_Y = tok.detokenize_grid_unpadded(gridY[k_idx])
+
+                # Check if color_swap or color_change is in the label sequence
                 color_primitives = ['color_swap', 'color_change']
-                is_color_primitive = any(hp.inverse_lookup(label - NUM_SPECIAL_TOKENS) in color_primitives for label in label_seq if label > 1)
+                is_color_primitive = any(hp.inverse_lookup(label - NUM_SPECIAL_TOKENS) in color_primitives for label in label_seq if label > 3)
                 
-                if not is_color_primitive:
-                    return 0.0
+                if is_color_primitive:
+                    prim_name = 'color_swap' if 'color_swap' in [hp.inverse_lookup(label - NUM_SPECIAL_TOKENS) for label in label_seq if label > 3] else 'color_change'
+                else:
+                    return False
                 
-                prim_name = 'color_swap' if 'color_swap' in [hp.inverse_lookup(label - NUM_SPECIAL_TOKENS) for label in label_seq if label > 1] else 'color_change'
-                c1, c2 = heur.color_heuristics_tuples(tuple_grid_X, tuple_grid_Y, prim_name, program_func, args_composed=False)
-                
-                if c1 is None or c2 is None:
-                    print("==> Could not find any color combination applied to %s that could solve the problem." % prim_name)
-                    return 0.0
+                if c1 is None and c2 is None:
+                    c1, c2 = heur.color_heuristics_tuplesV3(input_grid, tuple_grid_Y, prim_name, program_func, args_composed=True)
 
-                print("==> Found color combination %s(%i, %i)!" % (prim_name, c1, c2))
-                output_grid = program_func(tuple_grid_X, c1, c2)
+                    if c1 is None or c2 is None:
+                        output_grid = program_func(input_grid, 1, 2)
 
-            if VIZ:
-                viz.draw_grid_triple(tuple_grid_X, output_grid, tuple_grid_Y)
+                        if isinstance(output_grid, list):
+                            output_grid = output_grid[0]
+                        output_grids.append(output_grid)
+                        c1 = 1
+                        c2 = 2
 
-            output_grid_tok = tok.tokenize_grid(output_grid, max_length=931)
-            sim = man_heuristic.get_similarity(output_grid_tok, gridY[k_idx])
-            if np.all(output_grid_tok == gridY[k_idx]):
-                sim = 1.
-            sims.append(sim)
+                output_grid = program_func(input_grid, c1, c2)
+                if isinstance(output_grid, list):
+                  output_grid = output_grid[0]
 
-        return np.median(sims)
+            # if VIZ:
+            #     tuple_grid_Y = tok.detokenize_grid_unpadded(gridY[k_idx])
+            #     print(output_grid)
+            #     viz.draw_grid_triple(tuple_grid_X, output_grid, tuple_grid_Y)
+            output_grids.append(output_grid)
+        
+        return output_grids, c1, c2
+            
     except:
-        print("==> Invalid program, an exception occurred while running it.")
-        return 0.0
+        if verbose:
+            import traceback
+            print("==> Invalid program, an exception occurred while running it")
+            print(traceback.format_exc())
+
+    return None, None, None
+
+def evaluate_program(path, example_grid_set, verbose=False):
+    label_seq = path_to_label_seq(path)
+    
+    label_seq_str = get_label_seq_str(label_seq)
+    print("Evaluating program: ", label_seq_str)
+    print("Token sequence: ", label_seq)
+
+    sims = []
+    gridX, gridY = example_grid_set
+
+    output_grids, c1, c2 = get_prediction(label_seq, gridX, gridY=gridY, verbose=verbose)
+
+    if output_grids is None:
+        return False, None, None
+        
+    for k_idx in range(len(output_grids)):
+        output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
+
+        if verbose:
+            print("output_grid_tok = ", output_grid_tok)
+            print("gridY[k_idx] = ", gridY[k_idx])
+
+            grid_output_viz = tok.detokenize_grid_unpadded(gridY[k_idx])
+            viz.draw_grid_pair(output_grids[k_idx].cells, grid_output_viz)
+        
+        sim = man_heuristic.get_similarity(output_grid_tok, gridY[k_idx])
+        if np.all(output_grid_tok == gridY[k_idx]):
+            sim = 1.
+
+        sims.append(sim)
+
+    return np.median(sims)            
 
 def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_iterations, max_depth):
     root = Node()
