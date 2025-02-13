@@ -245,7 +245,7 @@ def evaluate_program(path, example_grid_set, verbose=False):
     output_grids, c1, c2 = get_prediction(label_seq, gridX, gridY=gridY, verbose=verbose)
 
     if output_grids is None:
-        return False, None, None
+        return 0.0, 0, 0
         
     for k_idx in range(len(output_grids)):
         output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
@@ -263,7 +263,7 @@ def evaluate_program(path, example_grid_set, verbose=False):
 
         sims.append(sim)
 
-    return np.median(sims)            
+    return np.median(sims), c1, c2
 
 def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_iterations, max_depth):
     root = Node()
@@ -290,7 +290,7 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
 
             # Evaluation
             if node.is_terminal:
-                value = evaluate_program(path, example_token_seqs)
+                value, c1, c2 = evaluate_program(path, example_token_seqs)
                 print("\tReturned value = ", value)
 
                 # Backpropagation
@@ -299,9 +299,11 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
                     node.value = (node.value * (node.visits - 1) + value) / node.visits
 
                 if value == 1.0:
-                    return path
+                    # Get the label sequence for the successful path
+                    label_seq = path_to_label_seq(path)
+                    return label_seq, c1, c2, True
 
                 break
-
-
-    return None
+            
+    # If no solution found, return None values
+    return None, None, None, False
