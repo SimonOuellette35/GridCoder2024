@@ -24,7 +24,7 @@ if args.task == 'Kaggle':
     print("==> Current working directory: ", os.getcwd())
 
 from ARC_gym.arc_evaluation_dataset import ARCEvaluationDataset
-from datasets.similarity_dataset_p_star_atomic import ARCInspiredHodelSimilarity
+from datasets.gridcoder2_comparison_dataset import ARCInspiredHodelSimilarity
 from torch.utils.data import DataLoader
 from ARC_gym.utils.batching import make_gridcoder_batch
 import ARC_gym.utils.tokenization as tok

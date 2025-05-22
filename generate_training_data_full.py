@@ -1,4 +1,4 @@
-from datasets.similarity_dataset_p_star_atomic import ARCInspiredHodelSimilarity as ARCInspiredHodelSimilarityAtomic
+from datasets.gridcoder2_comparison_dataset import ARCInspiredHodelSimilarity as ARCInspiredHodelSimilarityAtomic
 import numpy as np
 from tqdm import tqdm
 import utils.sequence_utils as seq_utils
