@@ -219,9 +219,9 @@ def validate_batch(batch, model, device):
 
         for row in tqdm(batch, 'Validation'):
 
-            input_grid = eval(row[0])
-            output_grid = eval(row[1])
-            label_seq = eval(row[2])
+            input_grid = row[0]
+            output_grid = row[1]
+            label_seq = row[2]
 
             # Pad the sequence to a fixed length
             label_seq = label_seq[:MAX_SEQ_LENGTH] + [0] * (MAX_SEQ_LENGTH - len(label_seq))
