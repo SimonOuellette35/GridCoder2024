@@ -127,20 +127,19 @@ def evaluate_program(label_seq, example_grid_set, verbose=False):
     gridX, gridY = example_grid_set
     output_grids, c1, c2 = get_prediction(label_seq, gridX, gridY=gridY, verbose=verbose)
 
+    #verbose = True
+
     if output_grids is None:
         return False, None, None
     
     try:
         for k_idx in range(len(output_grids)):
-            #output_grid_tok = tok.tokenize_grid(output_grids[k_idx].get_shifted_cells(), max_length=931)
-            output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
+            output_grid_tok = tok.tokenize_grid(output_grids[k_idx].get_shifted_cells(), max_length=931)
+            #output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
 
             if verbose:
-                print("output_grid_tok = ", output_grid_tok)
-                print("gridY[k_idx] = ", gridY[k_idx])
-
                 grid_output_viz = tok.detokenize_grid_unpadded(gridY[k_idx])
-                viz.draw_grid_pair(output_grids[k_idx].cells, grid_output_viz)
+                viz.draw_grid_pair(output_grids[k_idx].get_shifted_cells(), grid_output_viz)
 
             if np.any(output_grid_tok != gridY[k_idx]):
                 if verbose:
@@ -413,13 +412,14 @@ def search(model, example_grid_set_tensor, example_token_seqs, time_budget, max_
         # evaluate the program and stop if it succeeds.
         verbose = False
         
+        print("Evaluating program: ", prog[1])
         result, c1, c2 = evaluate_program(prog[1], example_token_seqs, verbose=verbose)
         #print("\tIteration %i: Result: %s" % (n, result))
 
         # if c1 is not None:
         #     print("\tc1 = %i, c2 = %i" % (c1, c2))
 
-        # if prog[1][:4] == [13, 1, 50, 3]:
+        # if prog[1][:4] == [14, 1, 5, 3]:
         #     print("==> Trying the correct program!")
         #     return prog[1], c1, c2, True
 
