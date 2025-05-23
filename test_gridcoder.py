@@ -5,6 +5,16 @@ import torch
 import json
 import numpy as np
 
+from torch.utils.data import DataLoader
+import ARC_gym.utils.tokenization as tok
+import Hodel_primitives_atomicV3 as Hodel_atomic
+import utils.sequence_utils as seq_utils
+from model.LVM import LVM
+#import search.p_star as p_star
+import search.p_star_superposition as p_star
+import utils.grid_utils as g
+from torch.utils.data import DataLoader, TensorDataset
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Command line arguments for GridCoder")
 
@@ -18,26 +28,45 @@ def parse_arguments():
 
 args = parse_arguments()
 
+# ================================================================== Dataset ==================================================================
+
+def load_data(num_samples=1000, filename='training.json'):
+    X_train = []
+    Y_train = []
+
+    try:
+        with open(filename, 'r') as f:
+            data_list = json.load(f)
+            # Take only up to num_samples
+            data_list = data_list[:num_samples]
+            
+            for data in data_list:
+                X_train.append(data['input_sequence'])
+                Y_train.append(data['prog'])
+                
+    except json.JSONDecodeError:
+        # Fallback for line-delimited JSON
+        with open(filename, 'r') as f:
+            # Read up to num_samples lines
+            for i, line in enumerate(f):
+                if i >= num_samples:
+                    break
+                    
+                data = json.loads(line)
+                X_train.append(data['input_sequence'])
+                Y_train.append(data['prog'])
+            
+    # Convert to PyTorch tensors
+    X_train = torch.tensor(np.array(X_train), dtype=torch.long)
+    Y_train = torch.tensor(np.array(Y_train), dtype=torch.long)
+    
+    return X_train, Y_train
+
 if args.task == 'Kaggle':
     os.chdir('/kaggle/working/GridCoder/')
     sys.path.append('/kaggle/working/GridCoder/')
     print("==> Current working directory: ", os.getcwd())
 
-from ARC_gym.arc_evaluation_dataset import ARCEvaluationDataset
-from datasets.gridcoder2_comparison_dataset import ARCInspiredHodelSimilarity
-from torch.utils.data import DataLoader
-from ARC_gym.utils.batching import make_gridcoder_batch
-import ARC_gym.utils.tokenization as tok
-import Hodel_primitives_atomicV3 as Hodel_atomic
-import utils.sequence_utils as seq_utils
-from model.LVM import LVM
-#import search.p_star as p_star
-import search.p_star_superposition as p_star
-import utils.grid_utils as g
-
-# ================================================================== Dataset ==================================================================
-
-if args.task == 'Kaggle':
     # Load and parse the JSON file
     with open('/kaggle/input/arc-prize-2024/arc-agi_test_challenges.json', 'r') as f:
     #with open('/kaggle/input/arc-prize-2024/arc-agi_evaluation_challenges.json', 'r') as f:
@@ -49,6 +78,11 @@ if args.task == 'Kaggle':
             test_tasks.append({task_id: task_data})
 
         print("Loaded %i test tasks!" % len(test_tasks))
+elif args.task == 'alpha_POC':
+    X_data, Y_data = load_data(100, args.dataset)
+    dataset_val = TensorDataset(X_data, Y_data)
+    eval_loader = DataLoader(dataset_val, batch_size=1)
+
 else:
     if args.dataset == 'synthetic':
         ds = ARCInspiredHodelSimilarity()
@@ -125,6 +159,8 @@ def process_task(model, X_tensor, Y_tensor, X_token_seq, Y_token_seq):
             result, c1, c2, success = p_star.search(model, (X_tensor, Y_tensor), (X_token_seq, Y_token_seq), args.time_budget, max_iterations, max_depth)
             if success:
                 print("Success! Program found: ", result)
+            else:
+                print("Failure!")
         except:
             import traceback
             print("Exception occurred during search:")
@@ -256,35 +292,42 @@ if args.task == 'Kaggle':
         save_submissions(submissions)
 
 else:
+
+    SKIP = 0
     for task_idx, eval_task in enumerate(eval_loader):
-        
-        if eval_task['task_desc'][0] == args.task:
-            print("Task description: ", eval_task['task_desc'])
 
-            X_tensor = []
-            Y_tensor = []
+        print("Task description/class ID: ", eval_task[1].cpu().data.numpy()[0][1])
 
-            X_token_seq = []
-            Y_token_seq = []
+        if task_idx < SKIP:
+            continue
 
-            # input, output pairs must be provided
-            support_x = eval_task['xs'][0]
-            support_y = eval_task['ys'][0]
+        gridX = eval_task[0][0][:931].cpu().data.numpy()
+        gridY = eval_task[0][0][931:].cpu().data.numpy()
 
-            tmp_input_seq = seq_utils.gen_in_context_seq_full(support_x, support_y)
+        def process_grid_pair(support_x, support_y):
+            # Convert input_grid and output_grid lists into tuples of tuples
+            GRID_LENGTH = (31 * 30) + 1              # 931
+            x_token_seq = support_x[:GRID_LENGTH]
+            y_token_seq = support_y[:GRID_LENGTH]
 
-            for k_idx in range(tmp_input_seq.shape[0]):
-                input_grid = tmp_input_seq[k_idx, :931]
-                output_grid = tmp_input_seq[k_idx, 931:]
+            x_tensor = torch.unsqueeze(torch.from_numpy(g.one_hot_encode(g.gridify(x_token_seq), input_vocab_size)).to(device).float(), dim=0)
+            y_tensor = torch.unsqueeze(torch.from_numpy(g.one_hot_encode(g.gridify(y_token_seq), input_vocab_size)).to(device).float(), dim=0)
 
-                X_token_seq.append(input_grid)
-                Y_token_seq.append(output_grid)
+            return x_tensor, x_token_seq, y_tensor, y_token_seq
 
-                input1 = torch.unsqueeze(torch.from_numpy(g.one_hot_encode(g.gridify(input_grid), input_vocab_size)).to(device).float(), dim=0)
-                input2 = torch.unsqueeze(torch.from_numpy(g.one_hot_encode(g.gridify(output_grid), input_vocab_size)).to(device).float(), dim=0)
+        x_tensor, x_token_seq, y_tensor, y_token_seq = process_grid_pair(gridX, gridY)
 
-                X_tensor.append(input1)
-                Y_tensor.append(input2)
+        X_tensors = []
+        Y_tensors = []
+        X_token_seqs = []
+        Y_token_seqs = []
 
-            process_task(model, X_tensor, Y_tensor, X_token_seq, Y_token_seq)
+        X_tensors.append(x_tensor)
+        X_token_seqs.append(x_token_seq)
+        Y_tensors.append(y_tensor)
+        Y_token_seqs.append(y_token_seq)
 
+        process_task(model, X_tensors, Y_tensors, X_token_seqs, Y_token_seqs)
+
+        # TODO: temporary, to simplify debugging.
+        exit(0)
