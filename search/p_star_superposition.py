@@ -134,8 +134,8 @@ def evaluate_program(label_seq, example_grid_set, verbose=False):
     
     try:
         for k_idx in range(len(output_grids)):
-            #output_grid_tok = tok.tokenize_grid(output_grids[k_idx].get_shifted_cells(), max_length=931)
-            output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
+            output_grid_tok = tok.tokenize_grid(output_grids[k_idx].get_shifted_cells(), max_length=931)
+            #output_grid_tok = tok.tokenize_grid(output_grids[k_idx].cells, max_length=931)
 
             if verbose:
                 grid_output_viz = tok.detokenize_grid_unpadded(gridY[k_idx])
