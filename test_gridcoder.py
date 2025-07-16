@@ -8,9 +8,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 import ARC_gym.utils.tokenization as tok
 import Hodel_primitives_atomicV3 as Hodel_atomic
-import utils.sequence_utils as seq_utils
 from model.LVM import LVM
-#import search.p_star as p_star
 import search.p_star_superposition as p_star
 import utils.grid_utils as g
 from torch.utils.data import DataLoader, TensorDataset
@@ -21,7 +19,7 @@ def parse_arguments():
     parser.add_argument("--task", type=str, help="Task to load for eval or training ARC set: the name of the filename for the task")
     parser.add_argument("--dataset", type=str, default="eval", help="Task to load ('synthetic' for synthetically generated tasks, 'eval' for ARC evaluation dataset, 'train' for ARC training dataset)")
     parser.add_argument("--heuristic", type=str, default="Transformer", help="possible choices: [Transformer, Pixelwise]")
-    parser.add_argument("--time_budget", type=int, default=300, help="Time budget per task in seconds")
+    parser.add_argument("--time_budget", type=int, default=180, help="Time budget per task in seconds")
      
     args = parser.parse_args()
     return args
@@ -293,13 +291,9 @@ if args.task == 'Kaggle':
 
 else:
 
-    SKIP = 0
+    success_rate = 0
+    task_count = 0
     for task_idx, eval_task in enumerate(eval_loader):
-
-        print("Task description/class ID: ", eval_task[1].cpu().data.numpy()[0][1])
-
-        if task_idx < SKIP:
-            continue
 
         gridX = eval_task[0][0][:931].cpu().data.numpy()
         gridY = eval_task[0][0][931:].cpu().data.numpy()
@@ -327,7 +321,11 @@ else:
         Y_tensors.append(y_tensor)
         Y_token_seqs.append(y_token_seq)
 
-        process_task(model, X_tensors, Y_tensors, X_token_seqs, Y_token_seqs)
+        _, _, _, success = process_task(model, X_tensors, Y_tensors, X_token_seqs, Y_token_seqs)
 
-        # TODO: temporary, to simplify debugging.
-        exit(0)
+        if success:
+            success_rate += 1
+
+        task_count += 1
+
+print("==> Success rate: ", float(success_rate) / task_count)
